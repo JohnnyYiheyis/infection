@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infection Game</title>
+
+    <style>
+        body {
+            overflow: hidden;
+            background-color: brown;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background: orange;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-25px, -25px);
+        }
+
+        .infected {
+            background: yellow;
+            box-shadow: 0px 0px 20px white;
+        }
+
+        .player {
+            width: 20px;
+            height: 20px;
+            background: blueviolet;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+
+<body id="body">
+    <h1 id="display"></h1>
+    <h1 id="timer"></h1>
+    <div class="cell infected"></div>
+    <div class="player" id="player"></div>
+
+
+    <script>
+        const size = 5;
+        const speed = 20;
+        let seconds = 60;
+        const cellsCount = 200;
+
+        new Array(cellsCount).fill(1).forEach(() => {
+            const cellElem = document.createElement('div');
+            cellElem.classList.add('cell')
+            document.getElementById('body').appendChild(cellElem)
+        })
+
+        const player = document.getElementById('player')
+
+        let playerPosition = [0, 0];
+
+        window.addEventListener('mousemove', (event) => {
+            playerPosition = [event.clientX, event.clientY];
+            player.style.left = event.clientX + "px";
+            player.style.top = event.clientY + "px";
+        })
+
+        const cells = document.querySelectorAll('.cell');
+        const display = document.getElementById('display');
+
+        const directions = Array(cells.length).fill([0, 0]).map(item => [Math.random() * speed - speed / 2, Math.random() * speed - speed / 2])
+        const positions = Array(cells.length).fill([0, 0]).map(item => [
+            // window.innerWidth / 2,
+            Math.random() * window.innerWidth,
+            // window.innerHeight / 2
+            Math.random() * window.innerHeight
+        ])
+
+        let prevTime = Date.now();
+
+        const timer = document.getElementById('timer')
+
+        timer.innerHTML = "Left Seconds " + seconds + "sec"
+
+        setInterval(() => {
+            seconds--;
+            timer.innerHTML = "Left Seconds " + seconds + "sec"
+            if (seconds == 0) {
+                alert("You WIN!!!")
+                location.reload();
+            }
+        }, 1000)
+
+
+        function loop() {
+            const delta = (Date.now() - prevTime) / 1000;
+
+            const positionRefs = new Map();
+
+            for (let i = 0; i < cells.length; i++) {
+                const cell = cells[i];
+                cell.style.width = size * 2 + 'px'
+                cell.style.height = size * 2 + 'px'
+                const direction = directions[i];
+                let position = positions[i];
+                cell.style.left = position[0] + 'px';
+                cell.style.top = position[1] + 'px';
+
+                positions[i][0] += direction[0] * delta;
+                positions[i][1] += direction[1] * delta;
+
+                if (positions[i][0] < size || positions[i][0] > window.innerWidth - size) {
+                    directions[i][0] *= -1;
+                }
+                if (positions[i][1] < size || positions[i][1] > window.innerHeight - size) {
+                    directions[i][1] *= -1;
+                }
+
+                positions[i][0] += direction[0] * delta;
+                positions[i][1] += direction[1] * delta;
+
+                position = positions[i];
+
+                cell.style.left = position[0] + 'px';
+                cell.style.top = position[1] + 'px';
+                positionRefs.set(cell, position);
+            }
+
+            // collistion detection
+            const infected = Array.from(cells).filter((cell) => cell.classList.contains('infected'))
+            const notInfected = Array.from(cells).filter((cell) => !cell.classList.contains('infected'))
+
+            display.innerHTML = `Infected ${infected.length}`
+
+            for (const notInfectedCell of notInfected) {
+                const notInfectedPosition = positionRefs.get(notInfectedCell);
+                for (const infectedCell of infected) {
+                    const infectedPosition = positionRefs.get(infectedCell);
+                    const collistionDetected = Math.sqrt(Math.pow(notInfectedPosition[0] - infectedPosition[0], 2) + Math.pow(notInfectedPosition[1] - infectedPosition[1], 2));
+                    if (collistionDetected < size * 2.1)
+                        notInfectedCell.classList.add('infected')
+                }
+            }
+
+            for (const infectedCell of infected) {
+                const infectedPosition = positionRefs.get(infectedCell);
+
+                const collistionDetected = Math.sqrt(Math.pow(playerPosition[0] - infectedPosition[0], 2) + Math.pow(playerPosition[1] - infectedPosition[1], 2));
+                if (collistionDetected < (size + 20)) {
+                    alert("Game Over! You got infected.")
+                    location.reload()
+                    return;
+                }
+            }
+
+            prevTime = Date.now();
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+
+
+    </script>
+</body>
+
+</html>
